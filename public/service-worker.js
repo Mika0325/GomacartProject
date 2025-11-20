@@ -1,9 +1,11 @@
 const CACHE_NAME = 'gomacart-cache-v1';
 const urlsToCache = [
-    '/Goma.html',
-    '/Cart.css',
-    '/GomaCart.js',
-    '/manifest.json'
+    './Goma.html',
+    './Cart.css',
+    './GomaCart.js',
+    './manifest.json',
+    './Sakura-2.png',
+    './Sakura.png'
 ];
 
 self.addEventListener('install', event => {
