@@ -1,7 +1,7 @@
 {
     "name": "Gomacart",
     "short_name": "Gomacart",
-    "start_url": "/Goma.html",
+    "start_url": "./Goma.html",
     "display": "standalone",
     "background_color": "#ffffff",
     "theme_color": "#f09199",
