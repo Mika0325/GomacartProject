@@ -8,23 +8,18 @@ const path = require('path');
 const app = express();
 const PORT = 3000;
 
-// ----------------- ミドルウェア -----------------
 app.use(cors());
 app.use(bodyParser.json());
 app.use(express.static('public'));
 
 const DATA_FILE = './Gomadata.json';
 
-// ----------------- データロード / 保存 -----------------
+// ----------------- データロード/保存 -----------------
 function loadData() {
     if (!fs.existsSync(DATA_FILE)) {
         return { shoppingItems: [], stockItems: [], storeItems: [] };
     }
-    try {
-        return JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
-    } catch {
-        return { shoppingItems: [], stockItems: [], storeItems: [] };
-    }
+    return JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
 }
 
 function saveData(data) {
@@ -42,37 +37,35 @@ app.post('/api/data', (req, res) => {
     res.json({ status: 'ok' });
 });
 
-// ----------------- 画像アップロード -----------------
+// ----------------- 写真アップロード -----------------
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
-        const dir = path.join(__dirname, 'public/images');
+        const dir = 'public/images/';
         if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
         cb(null, dir);
     },
     filename: (req, file, cb) => {
         const unique = Date.now() + '-' + Math.round(Math.random() * 1e9);
-        cb(null, unique + path.extname(file.originalname));
+        const ext = path.extname(file.originalname);
+        cb(null, unique + ext);
     }
 });
+
 const upload = multer({ storage });
 
-// 店舗アイテム登録
 app.post('/api/store', upload.array('photos', 10), (req, res) => {
     const { storeName, itemName, price, memo } = req.body;
     const photos = req.files.map(f => f.filename);
-
     const data = loadData();
     const storeItem = { storeName, itemName, price, memo, photos };
     data.storeItems.push(storeItem);
     saveData(data);
-
     res.json(storeItem);
 });
 
-// 写真削除
 app.delete('/api/store/photo/:filename', (req, res) => {
     const filename = req.params.filename;
-    const filePath = path.join(__dirname, 'public/images', filename);
+    const filePath = `public/images/${filename}`;
     if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
     res.json({ status: 'ok' });
 });

@@ -1,29 +1,38 @@
-// photoHandler.js
-export async function processPhotos(files, maxSize = 120, maxPhotos = 3) {
-    const processed = [];
-    const limitedFiles = Array.from(files).slice(0, maxPhotos);
+const storePhotoInput = document.getElementById('storePhoto');
+const storePhotoPreview = document.getElementById('storePhotoPreview');
 
-    for (const file of limitedFiles) {
-        const thumb = await createThumbnail(file, maxSize);
-        processed.push({ original: file, thumb });
-    }
-    return processed;
-}
+const MAX_THUMB_WIDTH = 120;
+const MAX_THUMB_HEIGHT = 120;
 
-function createThumbnail(file, maxSize) {
+// サムネイル生成（フロントで軽量化）
+function createThumbnail(file) {
     return new Promise(resolve => {
         const img = new Image();
         img.onload = () => {
             const canvas = document.createElement('canvas');
             let width = img.width;
             let height = img.height;
-            const ratio = Math.min(maxSize / width, maxSize / height, 1);
-            canvas.width = width * ratio;
-            canvas.height = height * ratio;
+            const ratio = Math.min(MAX_THUMB_WIDTH / width, MAX_THUMB_HEIGHT / height, 1);
+            width *= ratio;
+            height *= ratio;
+            canvas.width = width;
+            canvas.height = height;
             const ctx = canvas.getContext('2d');
-            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            ctx.drawImage(img, 0, 0, width, height);
             canvas.toBlob(blob => resolve(URL.createObjectURL(blob)), 'image/jpeg', 0.7);
         };
         img.src = URL.createObjectURL(file);
     });
 }
+
+// プレビュー表示
+storePhotoInput.addEventListener('change', async () => {
+    storePhotoPreview.innerHTML = '';
+    for (const file of storePhotoInput.files) {
+        const thumbURL = await createThumbnail(file);
+        const img = document.createElement('img');
+        img.src = thumbURL;
+        img.classList.add('thumb');
+        storePhotoPreview.appendChild(img);
+    }
+});
