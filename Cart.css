@@ -170,6 +170,7 @@ button.add-btn {
     padding: 0.6rem 1rem;
     border-radius: 6px;
     cursor: pointer;
+    text-align: center;
     margin-top: 0.5rem;
     width: 100%;
     font-size: 1rem;
