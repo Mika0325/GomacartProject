@@ -9,7 +9,7 @@ const storeList = document.getElementById('storeList');
 const storePhotoInput = document.getElementById('storePhoto');
 const storePhotoPreview = document.getElementById('storePhotoPreview');
 
-// データロード/保存
+// ----------------- データロード/保存 -----------------
 async function loadData() {
     try {
         const res = await fetch('http://localhost:3000/api/data');
@@ -42,6 +42,7 @@ async function saveData() {
     }
 }
 
+// ----------------- 入力バリデーション -----------------
 function validateInput(name) {
     if (!name || !name.trim()) {
         alert('名前は必須です');
@@ -50,6 +51,7 @@ function validateInput(name) {
     return true;
 }
 
+// ----------------- リストレンダリング -----------------
 function renderList(listElem, items, renderItemFn) {
     listElem.innerHTML = '';
     items.forEach((item, index) => {
@@ -59,48 +61,6 @@ function renderList(listElem, items, renderItemFn) {
     });
 }
 
-// ----------------- サムネイル生成 -----------------
-function createThumbnail(file, maxSize = 80) {
-    return new Promise(resolve => {
-        const img = new Image();
-        img.onload = () => {
-            const canvas = document.createElement('canvas');
-            let width = img.width;
-            let height = img.height;
-
-            if (width > height) {
-                if (width > maxSize) {
-                    height *= maxSize / width;
-                    width = maxSize;
-                }
-            } else {
-                if (height > maxSize) {
-                    width *= maxSize / height;
-                    height = maxSize;
-                }
-            }
-            canvas.width = width;
-            canvas.height = height;
-            canvas.getContext('2d').drawImage(img, 0, 0, width, height);
-            canvas.toBlob(blob => resolve(URL.createObjectURL(blob)), 'image/jpeg', 0.7);
-        };
-        img.src = URL.createObjectURL(file);
-    });
-}
-
-// プレビュー表示
-storePhotoInput.addEventListener('change', async () => {
-    storePhotoPreview.innerHTML = '';
-    for (const file of storePhotoInput.files) {
-        const thumbURL = await createThumbnail(file);
-        const img = document.createElement('img');
-        img.src = thumbURL;
-        img.classList.add('thumb');
-        storePhotoPreview.appendChild(img);
-    }
-});
-
-// ----------------- リストレンダリング -----------------
 function renderShoppingList() {
     renderList(shoppingList, shoppingItems, (item, index) => `
         ${item.name} ${item.qty ? '(' + item.qty + ')' : ''} ${item.memo ? ' - ' + item.memo : ''}
@@ -120,13 +80,47 @@ function renderStockList() {
 function renderStoreList() {
     renderList(storeList, storeItems, (item, index) => `
         ${item.storeName} - ${item.itemName} ${item.price ? '(' + item.price + '円)' : ''} ${item.memo ? ' - ' + item.memo : ''}
-        ${item.photos ? item.photos.map((p, i) => `<span>
-            <img src="images/${p}" class="thumb" data-index="${i}" data-store="${index}">
-            <button class="delete-photo" data-index="${i}" data-store="${index}">×</button>
-        </span>`).join('') : ''}
+        ${item.photos ? item.photos.map((p, i) => `
+            <span>
+                <img src="images/${p}" class="thumb" data-index="${i}" data-store="${index}">
+                <button class="delete-photo" data-index="${i}" data-store="${index}">×</button>
+            </span>`).join('') : ''}
         <button class="delete-btn" data-index="${index}" data-type="store">削除</button>
     `);
 }
+
+// ----------------- サムネイル生成 -----------------
+const MAX_THUMB_SIZE = 120;
+
+function createThumbnail(file) {
+    return new Promise(resolve => {
+        const img = new Image();
+        img.onload = () => {
+            const canvas = document.createElement('canvas');
+            let w = img.width;
+            let h = img.height;
+            const ratio = Math.min(MAX_THUMB_SIZE / w, MAX_THUMB_SIZE / h, 1);
+            w *= ratio;
+            h *= ratio;
+            canvas.width = w;
+            canvas.height = h;
+            canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+            canvas.toBlob(blob => resolve(URL.createObjectURL(blob)), 'image/jpeg', 0.7);
+        };
+        img.src = URL.createObjectURL(file);
+    });
+}
+
+storePhotoInput.addEventListener('change', async () => {
+    storePhotoPreview.innerHTML = '';
+    for (const file of storePhotoInput.files) {
+        const thumbURL = await createThumbnail(file);
+        const img = document.createElement('img');
+        img.src = thumbURL;
+        img.classList.add('thumb');
+        storePhotoPreview.appendChild(img);
+    }
+});
 
 // ----------------- イベント -----------------
 document.getElementById('addItemBtn').addEventListener('click', async () => {
@@ -188,7 +182,7 @@ document.getElementById('addStoreBtn').addEventListener('click', async () => {
     storePhotoPreview.innerHTML = '';
 });
 
-// 削除イベント
+// ----------------- リスト操作（削除・移動・編集） -----------------
 document.addEventListener('click', async e => {
     const index = e.target.dataset?.index;
     const type = e.target.dataset?.type;
@@ -227,7 +221,7 @@ document.addEventListener('click', async e => {
     renderStoreList();
 });
 
-// タブ切替
+// ----------------- タブ切替 -----------------
 function showTab(id, button) {
     document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
     document.getElementById(id).classList.add('active');
@@ -235,7 +229,7 @@ function showTab(id, button) {
     button.classList.add('active');
 }
 
-// 初期ロード
+// ----------------- 初期ロード -----------------
 (async () => {
     await loadData();
     renderShoppingList();
