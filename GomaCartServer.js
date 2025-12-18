@@ -1,98 +1,75 @@
-// GomaCartServer.js
 const express = require('express');
-const cors = require('cors');
 const fs = require('fs');
 const path = require('path');
 const multer = require('multer');
+const cors = require('cors');
 
 const app = express();
 const PORT = 3000;
 
-// ----------------- ミドルウェア -----------------
-app.use(cors());
-app.use(express.json());
-app.use('/images', express.static(path.join(__dirname, 'images')));
-
-// ----------------- Multer設定（写真保存用） -----------------
-const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        const dir = path.join(__dirname, 'images');
-        if (!fs.existsSync(dir)) fs.mkdirSync(dir);
-        cb(null, dir);
-    },
-    filename: (req, file, cb) => {
-        const ext = path.extname(file.originalname);
-        const timestamp = Date.now();
-        const random = Math.floor(Math.random() * 10000);
-        cb(null, `photo_${timestamp}_${random}${ext}`);
-    }
-});
-const upload = multer({ storage });
-
-// ----------------- データファイル -----------------
+// データファイル
 const DATA_FILE = path.join(__dirname, 'Gomadata.json');
+// 画像保存フォルダ
+const IMAGE_DIR = path.join(__dirname, 'images');
 
-// データ読み込み
+// CORS許可
+app.use(cors());
+// JSONパース
+app.use(express.json());
+// staticでimagesフォルダ公開
+app.use('/images', express.static(IMAGE_DIR));
+
+// ---------------- データロード・保存 ----------------
 function loadData() {
     if (!fs.existsSync(DATA_FILE)) return { shoppingItems: [], stockItems: [], storeItems: [] };
-    const raw = fs.readFileSync(DATA_FILE);
-    return JSON.parse(raw);
+    const json = fs.readFileSync(DATA_FILE, 'utf-8');
+    try { return JSON.parse(json); } catch { return { shoppingItems: [], stockItems: [], storeItems: [] }; }
 }
 
-// データ保存
 function saveData(data) {
     fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2));
 }
 
-// ----------------- API -----------------
-
-// データ取得
+// ----------------- ルート -----------------
 app.get('/api/data', (req, res) => {
     const data = loadData();
     res.json(data);
 });
 
-// データ保存
 app.post('/api/data', (req, res) => {
     const data = req.body;
     saveData(data);
     res.json({ status: 'ok' });
 });
 
-// 店舗アイテム追加（写真付き）
-app.post('/api/store', upload.array('photos'), (req, res) => {
-    const { storeName, itemName, price, memo } = req.body;
-    const photos = req.files.map(f => f.filename);
+// ----------------- 画像アップロード ----------------
+if (!fs.existsSync(IMAGE_DIR)) fs.mkdirSync(IMAGE_DIR);
 
-    const data = loadData();
-    const newItem = { storeName, itemName, price, memo, photos };
-    data.storeItems.push(newItem);
-    saveData(data);
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => { cb(null, IMAGE_DIR); },
+    filename: (req, file, cb) => {
+        const unique = Date.now() + '-' + Math.floor(Math.random() * 1000);
+        const ext = path.extname(file.originalname);
+        cb(null, unique + ext);
+    }
+});
+const upload = multer({ storage });
 
-    res.json(newItem);
+app.post('/api/store/photo', upload.single('photo'), (req, res) => {
+    if (!req.file) return res.status(400).json({ error: 'ファイルなし' });
+    res.json({ filename: req.file.filename });
 });
 
-// 写真削除
+// ----------------- 画像削除 ----------------
 app.delete('/api/store/photo/:filename', (req, res) => {
-    const filename = req.params.filename;
-    const filePath = path.join(__dirname, 'images', filename);
+    const filePath = path.join(IMAGE_DIR, req.params.filename);
     if (fs.existsSync(filePath)) {
         fs.unlinkSync(filePath);
+        res.json({ status: 'deleted' });
+    } else {
+        res.status(404).json({ error: 'not found' });
     }
-
-    // データ内の写真名も削除
-    const data = loadData();
-    data.storeItems.forEach(item => {
-        if (item.photos) {
-            item.photos = item.photos.filter(p => p !== filename);
-        }
-    });
-    saveData(data);
-
-    res.json({ status: 'deleted' });
 });
 
-// ----------------- サーバ起動 -----------------
-app.listen(PORT, () => {
-    console.log(`GomaCartServer running on http://localhost:${PORT}`);
-});
+// ----------------- サーバ起動 ----------------
+app.listen(PORT, () => console.log(`Server running at http://localhost:${PORT}`));

@@ -1,7 +1,6 @@
 body {
     font-family: "Segoe UI", sans-serif;
-    background-color: #ffffff;
-    color: #333333;
+    background-color: #fff;
     margin: 0;
     padding: 0;
     display: flex;
@@ -11,7 +10,6 @@ body {
 
 header {
     background-color: #fef4f4;
-    color: #333333;
     text-align: center;
     padding: 1rem;
     font-weight: bold;
@@ -73,7 +71,6 @@ nav button.active {
     margin: 0.5rem 0;
     padding: 0.8rem;
     border-radius: 10px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -82,17 +79,15 @@ nav button.active {
 
 .item-list button {
     margin-left: 0.3rem;
-    background-color: #fef414;
     border: none;
     border-radius: 5px;
     padding: 0.3rem 0.5rem;
     cursor: pointer;
-    color: #333;
     font-size: 0.8rem;
 }
 
 .item-list button.delete-btn {
-    background-color: #f09199;
+    background: #f09199;
     color: #fff;
 }
 
@@ -106,48 +101,39 @@ textarea {
     box-sizing: border-box;
 }
 
-button.add-btn {
+button.add-btn,
+.photo-btn {
     background-color: #f09199;
     color: #fff;
     border: none;
     padding: 0.6rem 1rem;
     border-radius: 6px;
     cursor: pointer;
-    margin-top: 0.5rem;
     width: 100%;
     font-size: 1rem;
-}
-
-.image-preview img,
-.store-list img.thumb {
-    width: 60px;
-    height: 60px;
-    margin-right: 0.3rem;
-    border-radius: 5px;
-    object-fit: cover;
-}
-
-.photo-btn {
-    display: inline-block;
-    /* 横並びにできるように */
-    background-color: #f09199;
-    color: #fff;
-    border: none;
-    padding: 0.6rem 1rem;
-    border-radius: 6px;
-    cursor: pointer;
-    text-align: center;
     margin-top: 0.5rem;
-    font-size: 1rem;
 }
 
 .photo-btn:hover {
     opacity: 0.9;
 }
 
+.image-preview {
+    display: flex;
+    flex-wrap: wrap;
+    margin-top: 0.5rem;
+}
 
-/* スマホ対応 */
-@media (max-width: 600px) {
+.image-preview img.thumb {
+    width: 60px;
+    height: 60px;
+    margin-right: 0.3rem;
+    margin-bottom: 0.3rem;
+    border-radius: 5px;
+    object-fit: cover;
+}
+
+@media (max-width:600px) {
     header {
         font-size: 1.2rem;
         padding: 0.8rem;
@@ -162,7 +148,8 @@ button.add-btn {
         font-size: 1rem;
     }
 
-    button.add-btn {
+    button.add-btn,
+    .photo-btn {
         font-size: 1rem;
         padding: 0.8rem;
     }
@@ -178,6 +165,6 @@ button.add-btn {
     }
 
     body {
-        padding-bottom: 4rem;
+        padding-bottom: 5rem;
     }
 }
