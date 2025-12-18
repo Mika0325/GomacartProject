@@ -9,6 +9,7 @@ const storeList = document.getElementById('storeList');
 const storePhotoInput = document.getElementById('storePhoto');
 const storePhotoPreview = document.getElementById('storePhotoPreview');
 
+// データロード/保存
 async function loadData() {
     try {
         const res = await fetch('http://localhost:3000/api/data');
@@ -58,6 +59,48 @@ function renderList(listElem, items, renderItemFn) {
     });
 }
 
+// ----------------- サムネイル生成 -----------------
+function createThumbnail(file, maxSize = 80) {
+    return new Promise(resolve => {
+        const img = new Image();
+        img.onload = () => {
+            const canvas = document.createElement('canvas');
+            let width = img.width;
+            let height = img.height;
+
+            if (width > height) {
+                if (width > maxSize) {
+                    height *= maxSize / width;
+                    width = maxSize;
+                }
+            } else {
+                if (height > maxSize) {
+                    width *= maxSize / height;
+                    height = maxSize;
+                }
+            }
+            canvas.width = width;
+            canvas.height = height;
+            canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+            canvas.toBlob(blob => resolve(URL.createObjectURL(blob)), 'image/jpeg', 0.7);
+        };
+        img.src = URL.createObjectURL(file);
+    });
+}
+
+// プレビュー表示
+storePhotoInput.addEventListener('change', async () => {
+    storePhotoPreview.innerHTML = '';
+    for (const file of storePhotoInput.files) {
+        const thumbURL = await createThumbnail(file);
+        const img = document.createElement('img');
+        img.src = thumbURL;
+        img.classList.add('thumb');
+        storePhotoPreview.appendChild(img);
+    }
+});
+
+// ----------------- リストレンダリング -----------------
 function renderShoppingList() {
     renderList(shoppingList, shoppingItems, (item, index) => `
         ${item.name} ${item.qty ? '(' + item.qty + ')' : ''} ${item.memo ? ' - ' + item.memo : ''}
@@ -65,20 +108,6 @@ function renderShoppingList() {
         <button class="move-btn" data-index="${index}" data-type="shopping">在庫へ</button>
     `);
 }
-
-document.getElementById('addItemBtn').addEventListener('click', async () => {
-    const name = document.getElementById('itemName').value.trim();
-    const qty = document.getElementById('itemQty').value.trim();
-    const memo = document.getElementById('itemMemo').value.trim();
-    if (!validateInput(name)) return;
-
-    shoppingItems.push({ name, qty, memo });
-    await saveData();
-    renderShoppingList();
-    document.getElementById('itemName').value = '';
-    document.getElementById('itemQty').value = '';
-    document.getElementById('itemMemo').value = '';
-});
 
 function renderStockList() {
     renderList(stockList, stockItems, (item, index) => `
@@ -88,71 +117,42 @@ function renderStockList() {
     `);
 }
 
+function renderStoreList() {
+    renderList(storeList, storeItems, (item, index) => `
+        ${item.storeName} - ${item.itemName} ${item.price ? '(' + item.price + '円)' : ''} ${item.memo ? ' - ' + item.memo : ''}
+        ${item.photos ? item.photos.map((p, i) => `<span>
+            <img src="images/${p}" class="thumb" data-index="${i}" data-store="${index}">
+            <button class="delete-photo" data-index="${i}" data-store="${index}">×</button>
+        </span>`).join('') : ''}
+        <button class="delete-btn" data-index="${index}" data-type="store">削除</button>
+    `);
+}
+
+// ----------------- イベント -----------------
+document.getElementById('addItemBtn').addEventListener('click', async () => {
+    const name = document.getElementById('itemName').value.trim();
+    const qty = document.getElementById('itemQty').value.trim();
+    const memo = document.getElementById('itemMemo').value.trim();
+    if (!validateInput(name)) return;
+    shoppingItems.push({ name, qty, memo });
+    await saveData();
+    renderShoppingList();
+    document.getElementById('itemName').value = '';
+    document.getElementById('itemQty').value = '';
+    document.getElementById('itemMemo').value = '';
+});
+
 document.getElementById('addStockBtn').addEventListener('click', async () => {
     const name = document.getElementById('stockName').value.trim();
     const qty = document.getElementById('stockQty').value.trim();
     const memo = document.getElementById('stockMemo').value.trim();
     if (!validateInput(name)) return;
-
     stockItems.push({ name, qty, memo });
     await saveData();
     renderStockList();
     document.getElementById('stockName').value = '';
     document.getElementById('stockQty').value = '';
     document.getElementById('stockMemo').value = '';
-});
-
-// ======================== 店舗メモ ========================
-
-function renderStoreList() {
-    renderList(storeList, storeItems, (item, index) => `
-        ${item.storeName} - ${item.itemName} ${item.price ? '(' + item.price + '円)' : ''} ${item.memo ? ' - ' + item.memo : ''}
-        ${item.photos ? item.photos.map((p, i) => `
-            <span>
-                <img src="images/${p}" class="thumb" data-index="${i}" data-store="${index}">
-                <button class="delete-photo" data-index="${i}" data-store="${index}">×</button>
-            </span>
-        `).join('') : ''}
-        <button class="delete-btn" data-index="${index}" data-type="store">削除</button>
-    `);
-}
-
-// 画像を Canvas で縮小
-function resizeImage(file, maxWidth = 100, maxHeight = 100) {
-    return new Promise(resolve => {
-        const img = new Image();
-        img.onload = () => {
-            let w = img.width;
-            let h = img.height;
-
-            if (w > h) {
-                if (w > maxWidth) { h *= maxWidth / w; w = maxWidth; }
-            } else {
-                if (h > maxHeight) { w *= maxHeight / h; h = maxHeight; }
-            }
-
-            const canvas = document.createElement('canvas');
-            canvas.width = w;
-            canvas.height = h;
-            const ctx = canvas.getContext('2d');
-            ctx.drawImage(img, 0, 0, w, h);
-            canvas.toBlob(blob => resolve(blob), 'image/jpeg', 0.7);
-        };
-        img.src = URL.createObjectURL(file);
-    });
-}
-
-// サムネイルプレビュー
-storePhotoInput.addEventListener('change', async () => {
-    storePhotoPreview.innerHTML = '';
-    for (const file of storePhotoInput.files) {
-        const thumbBlob = await resizeImage(file);
-        const thumbUrl = URL.createObjectURL(thumbBlob);
-        const imgElem = document.createElement('img');
-        imgElem.src = thumbUrl;
-        imgElem.dataset.blobUrl = thumbUrl;
-        storePhotoPreview.appendChild(imgElem);
-    }
 });
 
 document.getElementById('addStoreBtn').addEventListener('click', async () => {
@@ -162,15 +162,19 @@ document.getElementById('addStoreBtn').addEventListener('click', async () => {
     const memo = document.getElementById('storeMemo').value.trim();
     if (!validateInput(storeName) || !validateInput(itemName)) return;
 
-    // フォーム送信
     const formData = new FormData();
     formData.append('storeName', storeName);
     formData.append('itemName', itemName);
     formData.append('price', price);
     formData.append('memo', memo);
-    Array.from(storePhotoInput.files).forEach(f => formData.append('photos', f));
 
-    const res = await fetch('http://localhost:3000/api/store', { method: 'POST', body: formData });
+    Array.from(storePhotoInput.files).forEach(file => formData.append('photos', file));
+
+    const res = await fetch('http://localhost:3000/api/store', {
+        method: 'POST',
+        body: formData
+    });
+
     const result = await res.json();
     storeItems.push(result);
     renderStoreList();
@@ -184,24 +188,10 @@ document.getElementById('addStoreBtn').addEventListener('click', async () => {
     storePhotoPreview.innerHTML = '';
 });
 
-// 削除処理
+// 削除イベント
 document.addEventListener('click', async e => {
     const index = e.target.dataset?.index;
     const type = e.target.dataset?.type;
-
-    if (e.target.classList.contains('delete-photo')) {
-        const storeIndex = e.target.dataset.store;
-        const photoIndex = e.target.dataset.index;
-        const photoName = storeItems[storeIndex].photos[photoIndex];
-
-        await fetch(`http://localhost:3000/api/store/photo/${photoName}`, { method: 'DELETE' });
-        storeItems[storeIndex].photos.splice(photoIndex, 1);
-        renderStoreList();
-        await saveData();
-        return;
-    }
-
-    if (!index || !type) return;
 
     if (e.target.classList.contains('delete-btn')) {
         if (type === 'shopping') shoppingItems.splice(index, 1);
@@ -223,6 +213,14 @@ document.addEventListener('click', async e => {
         stockItems[index] = { name: newName.trim(), qty: newQty.trim(), memo: newMemo.trim() };
     }
 
+    if (e.target.classList.contains('delete-photo')) {
+        const storeIndex = e.target.dataset.store;
+        const photoIndex = e.target.dataset.index;
+        const photoName = storeItems[storeIndex].photos[photoIndex];
+        await fetch(`http://localhost:3000/api/store/photo/${photoName}`, { method: 'DELETE' });
+        storeItems[storeIndex].photos.splice(photoIndex, 1);
+    }
+
     await saveData();
     renderShoppingList();
     renderStockList();
@@ -237,7 +235,7 @@ function showTab(id, button) {
     button.classList.add('active');
 }
 
-// 初期化
+// 初期ロード
 (async () => {
     await loadData();
     renderShoppingList();
