@@ -9,7 +9,6 @@ const storeList = document.getElementById('storeList');
 const storePhotoInput = document.getElementById('storePhoto');
 const storePhotoPreview = document.getElementById('storePhotoPreview');
 
-// データ読み込み
 async function loadData() {
     try {
         const res = await fetch('http://localhost:3000/api/data');
@@ -28,7 +27,6 @@ async function loadData() {
     }
 }
 
-// データ保存
 async function saveData() {
     const data = { shoppingItems, stockItems, storeItems };
     localStorage.setItem('gomacart-data', JSON.stringify(data));
@@ -43,7 +41,6 @@ async function saveData() {
     }
 }
 
-// 入力チェック
 function validateInput(name) {
     if (!name || !name.trim()) {
         alert('名前は必須です');
@@ -52,7 +49,6 @@ function validateInput(name) {
     return true;
 }
 
-// 共通リスト描画
 function renderList(listElem, items, renderItemFn) {
     listElem.innerHTML = '';
     items.forEach((item, index) => {
@@ -62,7 +58,6 @@ function renderList(listElem, items, renderItemFn) {
     });
 }
 
-// 買い物リスト
 function renderShoppingList() {
     renderList(shoppingList, shoppingItems, (item, index) => `
         ${item.name} ${item.qty ? '(' + item.qty + ')' : ''} ${item.memo ? ' - ' + item.memo : ''}
@@ -80,13 +75,11 @@ document.getElementById('addItemBtn').addEventListener('click', async () => {
     shoppingItems.push({ name, qty, memo });
     await saveData();
     renderShoppingList();
-
     document.getElementById('itemName').value = '';
     document.getElementById('itemQty').value = '';
     document.getElementById('itemMemo').value = '';
 });
 
-// 在庫リスト
 function renderStockList() {
     renderList(stockList, stockItems, (item, index) => `
         ${item.name} ${item.qty ? '(' + item.qty + ')' : ''} ${item.memo ? ' - ' + item.memo : ''}
@@ -104,13 +97,13 @@ document.getElementById('addStockBtn').addEventListener('click', async () => {
     stockItems.push({ name, qty, memo });
     await saveData();
     renderStockList();
-
     document.getElementById('stockName').value = '';
     document.getElementById('stockQty').value = '';
     document.getElementById('stockMemo').value = '';
 });
 
-// 店舗メモリスト（写真対応）
+// ======================== 店舗メモ ========================
+
 function renderStoreList() {
     renderList(storeList, storeItems, (item, index) => `
         ${item.storeName} - ${item.itemName} ${item.price ? '(' + item.price + '円)' : ''} ${item.memo ? ' - ' + item.memo : ''}
@@ -124,18 +117,44 @@ function renderStoreList() {
     `);
 }
 
-// 店舗写真プレビュー
-storePhotoInput.addEventListener('change', () => {
-    storePhotoPreview.innerHTML = '';
-    Array.from(storePhotoInput.files).forEach((file, i) => {
-        const img = document.createElement('img');
+// 画像を Canvas で縮小
+function resizeImage(file, maxWidth = 100, maxHeight = 100) {
+    return new Promise(resolve => {
+        const img = new Image();
+        img.onload = () => {
+            let w = img.width;
+            let h = img.height;
+
+            if (w > h) {
+                if (w > maxWidth) { h *= maxWidth / w; w = maxWidth; }
+            } else {
+                if (h > maxHeight) { w *= maxHeight / h; h = maxHeight; }
+            }
+
+            const canvas = document.createElement('canvas');
+            canvas.width = w;
+            canvas.height = h;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, w, h);
+            canvas.toBlob(blob => resolve(blob), 'image/jpeg', 0.7);
+        };
         img.src = URL.createObjectURL(file);
-        img.dataset.index = i;
-        storePhotoPreview.appendChild(img);
     });
+}
+
+// サムネイルプレビュー
+storePhotoInput.addEventListener('change', async () => {
+    storePhotoPreview.innerHTML = '';
+    for (const file of storePhotoInput.files) {
+        const thumbBlob = await resizeImage(file);
+        const thumbUrl = URL.createObjectURL(thumbBlob);
+        const imgElem = document.createElement('img');
+        imgElem.src = thumbUrl;
+        imgElem.dataset.blobUrl = thumbUrl;
+        storePhotoPreview.appendChild(imgElem);
+    }
 });
 
-// 店舗追加
 document.getElementById('addStoreBtn').addEventListener('click', async () => {
     const storeName = document.getElementById('storeName').value.trim();
     const itemName = document.getElementById('storeItem').value.trim();
@@ -143,20 +162,16 @@ document.getElementById('addStoreBtn').addEventListener('click', async () => {
     const memo = document.getElementById('storeMemo').value.trim();
     if (!validateInput(storeName) || !validateInput(itemName)) return;
 
+    // フォーム送信
     const formData = new FormData();
     formData.append('storeName', storeName);
     formData.append('itemName', itemName);
     formData.append('price', price);
     formData.append('memo', memo);
+    Array.from(storePhotoInput.files).forEach(f => formData.append('photos', f));
 
-    Array.from(storePhotoInput.files).forEach(file => formData.append('photos', file));
-
-    const res = await fetch('http://localhost:3000/api/store', {
-        method: 'POST',
-        body: formData
-    });
-
-    const result = await res.json(); // photos 配列を含むオブジェクト
+    const res = await fetch('http://localhost:3000/api/store', { method: 'POST', body: formData });
+    const result = await res.json();
     storeItems.push(result);
     renderStoreList();
 
@@ -169,38 +184,36 @@ document.getElementById('addStoreBtn').addEventListener('click', async () => {
     storePhotoPreview.innerHTML = '';
 });
 
-// クリックイベント（削除・写真削除・在庫移動・編集）
+// 削除処理
 document.addEventListener('click', async e => {
-    const type = e.target.dataset?.type;
     const index = e.target.dataset?.index;
+    const type = e.target.dataset?.type;
 
-    // アイテム削除
+    if (e.target.classList.contains('delete-photo')) {
+        const storeIndex = e.target.dataset.store;
+        const photoIndex = e.target.dataset.index;
+        const photoName = storeItems[storeIndex].photos[photoIndex];
+
+        await fetch(`http://localhost:3000/api/store/photo/${photoName}`, { method: 'DELETE' });
+        storeItems[storeIndex].photos.splice(photoIndex, 1);
+        renderStoreList();
+        await saveData();
+        return;
+    }
+
+    if (!index || !type) return;
+
     if (e.target.classList.contains('delete-btn')) {
         if (type === 'shopping') shoppingItems.splice(index, 1);
         if (type === 'stock') stockItems.splice(index, 1);
         if (type === 'store') storeItems.splice(index, 1);
     }
 
-    // 写真削除
-    if (e.target.classList.contains('delete-photo')) {
-        const storeIndex = e.target.dataset.store;
-        const photoIndex = e.target.dataset.index;
-        const photoName = storeItems[storeIndex].photos[photoIndex];
-
-        // サーバーに削除リクエスト
-        await fetch(`http://localhost:3000/api/store/photo/${photoName}`, { method: 'DELETE' });
-
-        // フロントでも削除
-        storeItems[storeIndex].photos.splice(photoIndex, 1);
-    }
-
-    // 在庫へ移動
     if (e.target.classList.contains('move-btn') && type === 'shopping') {
         const item = shoppingItems.splice(index, 1)[0];
         stockItems.push({ name: item.name, qty: item.qty, memo: item.memo });
     }
 
-    // 在庫編集
     if (e.target.classList.contains('edit-btn') && type === 'stock') {
         const item = stockItems[index];
         const newName = prompt('新しい名前', item.name);
@@ -224,7 +237,7 @@ function showTab(id, button) {
     button.classList.add('active');
 }
 
-// 初期描画
+// 初期化
 (async () => {
     await loadData();
     renderShoppingList();
