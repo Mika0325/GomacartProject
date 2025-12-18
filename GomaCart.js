@@ -1,3 +1,5 @@
+// GomaCart.js
+
 let shoppingItems = [];
 let stockItems = [];
 let storeItems = [];
@@ -8,6 +10,9 @@ const storeList = document.getElementById('storeList');
 
 const storePhotoInput = document.getElementById('storePhoto');
 const storePhotoPreview = document.getElementById('storePhotoPreview');
+
+const MAX_THUMB_WIDTH = 120;
+const MAX_THUMB_HEIGHT = 120;
 
 // ----------------- データロード/保存 -----------------
 async function loadData() {
@@ -82,7 +87,7 @@ function renderStoreList() {
         ${item.storeName} - ${item.itemName} ${item.price ? '(' + item.price + '円)' : ''} ${item.memo ? ' - ' + item.memo : ''}
         ${item.photos ? item.photos.map((p, i) => `
             <span>
-                <img src="images/${p}" class="thumb" data-index="${i}" data-store="${index}">
+                <img src="http://localhost:3000/images/${p}" class="thumb" data-index="${i}" data-store="${index}">
                 <button class="delete-photo" data-index="${i}" data-store="${index}">×</button>
             </span>
         `).join('') : ''}
@@ -90,11 +95,8 @@ function renderStoreList() {
     `);
 }
 
-// ----------------- 写真アップロード & プレビュー -----------------
-const MAX_THUMB_WIDTH = 120;
-const MAX_THUMB_HEIGHT = 120;
-
-async function createThumbnail(file) {
+// ----------------- サムネイル生成 -----------------
+function createThumbnail(file) {
     return new Promise(resolve => {
         const img = new Image();
         img.onload = () => {
