@@ -9,7 +9,7 @@ const storeList = document.getElementById('storeList');
 const storePhotoInput = document.getElementById('storePhoto');
 const storePhotoPreview = document.getElementById('storePhotoPreview');
 
-// ----------------- データロード/保存 -----------------
+// ----------------- データロード / 保存 -----------------
 async function loadData() {
     try {
         const res = await fetch('http://localhost:3000/api/data');
@@ -51,7 +51,7 @@ function validateInput(name) {
     return true;
 }
 
-// ----------------- リストレンダリング -----------------
+// ----------------- 汎用リストレンダリング -----------------
 function renderList(listElem, items, renderItemFn) {
     listElem.innerHTML = '';
     items.forEach((item, index) => {
@@ -61,6 +61,41 @@ function renderList(listElem, items, renderItemFn) {
     });
 }
 
+// ----------------- サムネイル生成 -----------------
+async function createThumbnail(file, maxSize = 100) {
+    return new Promise(resolve => {
+        const img = new Image();
+        img.onload = () => {
+            const canvas = document.createElement('canvas');
+            let width = img.width;
+            let height = img.height;
+
+            const ratio = Math.min(maxSize / width, maxSize / height, 1);
+            width *= ratio;
+            height *= ratio;
+
+            canvas.width = width;
+            canvas.height = height;
+            canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+            canvas.toBlob(blob => resolve(URL.createObjectURL(blob)), 'image/jpeg', 0.7);
+        };
+        img.src = URL.createObjectURL(file);
+    });
+}
+
+// ----------------- プレビュー表示 -----------------
+storePhotoInput.addEventListener('change', async () => {
+    storePhotoPreview.innerHTML = '';
+    for (const file of storePhotoInput.files) {
+        const thumbUrl = await createThumbnail(file, 100);
+        const img = document.createElement('img');
+        img.src = thumbUrl;
+        img.classList.add('thumb');
+        storePhotoPreview.appendChild(img);
+    }
+});
+
+// ----------------- リストレンダリング -----------------
 function renderShoppingList() {
     renderList(shoppingList, shoppingItems, (item, index) => `
         ${item.name} ${item.qty ? '(' + item.qty + ')' : ''} ${item.memo ? ' - ' + item.memo : ''}
@@ -84,43 +119,11 @@ function renderStoreList() {
             <span>
                 <img src="images/${p}" class="thumb" data-index="${i}" data-store="${index}">
                 <button class="delete-photo" data-index="${i}" data-store="${index}">×</button>
-            </span>`).join('') : ''}
+            </span>
+        `).join('') : ''}
         <button class="delete-btn" data-index="${index}" data-type="store">削除</button>
     `);
 }
-
-// ----------------- サムネイル生成 -----------------
-const MAX_THUMB_SIZE = 120;
-
-function createThumbnail(file) {
-    return new Promise(resolve => {
-        const img = new Image();
-        img.onload = () => {
-            const canvas = document.createElement('canvas');
-            let w = img.width;
-            let h = img.height;
-            const ratio = Math.min(MAX_THUMB_SIZE / w, MAX_THUMB_SIZE / h, 1);
-            w *= ratio;
-            h *= ratio;
-            canvas.width = w;
-            canvas.height = h;
-            canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-            canvas.toBlob(blob => resolve(URL.createObjectURL(blob)), 'image/jpeg', 0.7);
-        };
-        img.src = URL.createObjectURL(file);
-    });
-}
-
-storePhotoInput.addEventListener('change', async () => {
-    storePhotoPreview.innerHTML = '';
-    for (const file of storePhotoInput.files) {
-        const thumbURL = await createThumbnail(file);
-        const img = document.createElement('img');
-        img.src = thumbURL;
-        img.classList.add('thumb');
-        storePhotoPreview.appendChild(img);
-    }
-});
 
 // ----------------- イベント -----------------
 document.getElementById('addItemBtn').addEventListener('click', async () => {
@@ -182,7 +185,7 @@ document.getElementById('addStoreBtn').addEventListener('click', async () => {
     storePhotoPreview.innerHTML = '';
 });
 
-// ----------------- リスト操作（削除・移動・編集） -----------------
+// 削除・移動・編集・写真削除
 document.addEventListener('click', async e => {
     const index = e.target.dataset?.index;
     const type = e.target.dataset?.type;
