@@ -127,6 +127,25 @@ button.add-btn {
     object-fit: cover;
 }
 
+.photo-btn {
+    display: inline-block;
+    /* 横並びにできるように */
+    background-color: #f09199;
+    color: #fff;
+    border: none;
+    padding: 0.6rem 1rem;
+    border-radius: 6px;
+    cursor: pointer;
+    text-align: center;
+    margin-top: 0.5rem;
+    font-size: 1rem;
+}
+
+.photo-btn:hover {
+    opacity: 0.9;
+}
+
+
 /* スマホ対応 */
 @media (max-width: 600px) {
     header {
@@ -161,21 +180,4 @@ button.add-btn {
     body {
         padding-bottom: 4rem;
     }
-}
-
-.photo-btn {
-    background-color: #f09199;
-    color: #fff;
-    border: none;
-    padding: 0.6rem 1rem;
-    border-radius: 6px;
-    cursor: pointer;
-    text-align: center;
-    margin-top: 0.5rem;
-    width: 100%;
-    font-size: 1rem;
-}
-
-.photo-btn:hover {
-    opacity: 0.9;
 }
