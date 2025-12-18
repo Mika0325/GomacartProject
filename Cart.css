@@ -164,17 +164,15 @@ button.add-btn {
 }
 
 .photo-btn {
-    display: inline-block;
     background-color: #f09199;
     color: #fff;
     border: none;
     padding: 0.6rem 1rem;
     border-radius: 6px;
     cursor: pointer;
-    text-align: center;
-    font-size: 1rem;
-    width: 100%;
     margin-top: 0.5rem;
+    width: 100%;
+    font-size: 1rem;
 }
 
 .photo-btn:hover {
