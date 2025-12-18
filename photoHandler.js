@@ -1,12 +1,13 @@
-// photoHandler.js
+// photoHandler.js（スマホ対応・軽量版）
 const storePhotoInput = document.getElementById('storePhoto');
 const storePhotoPreview = document.getElementById('storePhotoPreview');
 
-const MAX_THUMB_WIDTH = 120;
-const MAX_THUMB_HEIGHT = 120;
+// 最大解像度（サーバ保存用）
+const MAX_WIDTH = 800;
+const MAX_HEIGHT = 600;
 
-// ----------------- サムネイル生成 -----------------
-async function createThumbnail(file) {
+// ----------------- 画像縮小生成 -----------------
+async function createReducedImage(file) {
     return new Promise((resolve, reject) => {
         const img = new Image();
         const objectURL = URL.createObjectURL(file);
@@ -18,11 +19,12 @@ async function createThumbnail(file) {
             const canvas = document.createElement('canvas');
             let w = img.width;
             let h = img.height;
-            const ratio = Math.min(MAX_THUMB_WIDTH / w, MAX_THUMB_HEIGHT / h, 1);
+            const ratio = Math.min(MAX_WIDTH / w, MAX_HEIGHT / h, 1);
             w *= ratio;
             h *= ratio;
             canvas.width = w;
             canvas.height = h;
+
             const ctx = canvas.getContext('2d');
             ctx.drawImage(img, 0, 0, w, h);
 
@@ -40,25 +42,25 @@ async function createThumbnail(file) {
     });
 }
 
-// ----------------- プレビュー & アップロード -----------------
+// ----------------- プレビュー＆サーバ送信 -----------------
 storePhotoInput.addEventListener('change', async () => {
     storePhotoPreview.innerHTML = '';
 
     for (const file of storePhotoInput.files) {
         try {
-            const blob = await createThumbnail(file);
+            const reducedBlob = await createReducedImage(file);
 
-            // プレビューに追加
-            const previewURL = URL.createObjectURL(blob);
+            // プレビュー表示
+            const previewURL = URL.createObjectURL(reducedBlob);
             const img = document.createElement('img');
             img.src = previewURL;
             img.classList.add('thumb');
-            img.onload = () => URL.revokeObjectURL(previewURL); // プレビュー後に解放
+            img.onload = () => URL.revokeObjectURL(previewURL);
             storePhotoPreview.appendChild(img);
 
             // サーバへ送信
             const formData = new FormData();
-            formData.append('photo', blob, file.name);
+            formData.append('photo', reducedBlob, file.name);
 
             const res = await fetch('http://localhost:3000/api/store/photo', {
                 method: 'POST',
