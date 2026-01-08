@@ -36,7 +36,7 @@ main {
 nav {
     display: flex;
     justify-content: space-around;
-    background-color: #fff;
+    background-color: #ffffff;
     border-top: 2px solid #fef4f4;
     position: fixed;
     bottom: 0;
@@ -51,7 +51,7 @@ nav button {
     border: none;
     padding: 1rem 0.5rem;
     font-size: 1rem;
-    color: #666;
+    color: #666666;
     cursor: pointer;
     transition: 0.2s;
 }
@@ -69,7 +69,7 @@ nav button.active {
 }
 
 .item-list li {
-    background: #fef414;
+    background: #fef4f4;
     margin: 0.5rem 0;
     padding: 0.8rem;
     border-radius: 10px;
@@ -82,18 +82,18 @@ nav button.active {
 
 .item-list button {
     margin-left: 0.3rem;
-    background-color: #fef414;
+    background-color: #fef4f4;
     border: none;
     border-radius: 5px;
     padding: 0.3rem 0.5rem;
     cursor: pointer;
-    color: #333;
+    color: #333333;
     font-size: 0.8rem;
 }
 
 .item-list button.delete-btn {
     background-color: #f09199;
-    color: #fff;
+    color: #ffffff;
 }
 
 input,
@@ -101,14 +101,14 @@ textarea {
     width: 100%;
     padding: 0.5rem;
     margin: 0.3rem 0;
-    border: 1px solid #ccc;
+    border: 1px solid #cccccc;
     border-radius: 5px;
     box-sizing: border-box;
 }
 
 button.add-btn {
     background-color: #f09199;
-    color: #fff;
+    color: #ffffff;
     border: none;
     padding: 0.6rem 1rem;
     border-radius: 6px;
@@ -116,15 +116,6 @@ button.add-btn {
     margin-top: 0.5rem;
     width: 100%;
     font-size: 1rem;
-}
-
-.image-preview img,
-.store-list img.thumb {
-    width: 60px;
-    height: 60px;
-    margin-right: 0.3rem;
-    border-radius: 5px;
-    object-fit: cover;
 }
 
 /* スマホ対応 */

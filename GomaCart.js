@@ -6,54 +6,34 @@ const shoppingList = document.getElementById('shoppingList');
 const stockList = document.getElementById('stockList');
 const storeList = document.getElementById('storeList');
 
-// ----------------- データロード/保存 -----------------
-async function loadData() {
-    try {
-        const res = await fetch('http://localhost:3000/api/data');
-        if (!res.ok) throw new Error('サーバ応答なし');
-        const data = await res.json();
-        shoppingItems = data.shoppingItems || [];
-        stockItems = data.stockItems || [];
-        storeItems = data.storeItems || [];
-        localStorage.setItem('gomacart-data', JSON.stringify(data));
-    } catch {
-        console.warn('サーバ未接続。localStorageから読み込みます。');
-        const data = JSON.parse(localStorage.getItem('gomacart-data') || '{}');
-        shoppingItems = data.shoppingItems || [];
-        stockItems = data.stockItems || [];
-        storeItems = data.storeItems || [];
-    }
+/* ----------------- データロード / 保存 ----------------- */
+function loadData() {
+    const data = JSON.parse(localStorage.getItem('gomacart-data') || '{}');
+    shoppingItems = data.shoppingItems || [];
+    stockItems = data.stockItems || [];
+    storeItems = data.storeItems || [];
 }
 
-async function saveData() {
+function saveData() {
     const data = { shoppingItems, stockItems, storeItems };
     localStorage.setItem('gomacart-data', JSON.stringify(data));
-    try {
-        await fetch('http://localhost:3000/api/data', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(data)
-        });
-    } catch {
-        console.warn('サーバ未接続。localStorageに保存しました。');
-    }
 }
 
-// ----------------- 入力バリデーション -----------------
-function validateInput(name) {
-    if (!name || !name.trim()) {
-        alert('名前は必須です');
+/* ----------------- 入力バリデーション ----------------- */
+function validateInput(value) {
+    if (!value || !value.trim()) {
+        alert('必須項目です');
         return false;
     }
     return true;
 }
 
-// ----------------- リストレンダリング -----------------
-function renderList(listElem, items, renderItemFn) {
+/* ----------------- リスト描画 ----------------- */
+function renderList(listElem, items, renderFn) {
     listElem.innerHTML = '';
     items.forEach((item, index) => {
         const li = document.createElement('li');
-        li.innerHTML = renderItemFn(item, index);
+        li.innerHTML = renderFn(item, index);
         listElem.appendChild(li);
     });
 }
@@ -61,165 +41,127 @@ function renderList(listElem, items, renderItemFn) {
 function renderShoppingList() {
     renderList(shoppingList, shoppingItems, (item, index) => `
         ${item.name} ${item.qty ? '(' + item.qty + ')' : ''} ${item.memo ? ' - ' + item.memo : ''}
-        <button class="delete-btn" data-index="${index}" data-type="shopping">削除</button>
-        <button class="move-btn" data-index="${index}" data-type="shopping">在庫へ</button>
+        <button class="delete-btn" data-type="shopping" data-index="${index}">削除</button>
+        <button class="move-btn" data-index="${index}">在庫へ</button>
     `);
 }
 
 function renderStockList() {
     renderList(stockList, stockItems, (item, index) => `
         ${item.name} ${item.qty ? '(' + item.qty + ')' : ''} ${item.memo ? ' - ' + item.memo : ''}
-        <button class="edit-btn" data-index="${index}" data-type="stock">編集</button>
-        <button class="delete-btn" data-index="${index}" data-type="stock">削除</button>
+        <button class="edit-btn" data-index="${index}">編集</button>
+        <button class="delete-btn" data-type="stock" data-index="${index}">削除</button>
     `);
 }
 
 function renderStoreList() {
     renderList(storeList, storeItems, (item, index) => `
-        ${item.storeName} - ${item.itemName} ${item.price ? '(' + item.price + '円)' : ''} ${item.memo ? ' - ' + item.memo : ''}
-        ${item.photos ? item.photos.map((p, i) => `
-            <span>
-                <img src="images/${p}" class="thumb" data-index="${i}" data-store="${index}">
-                <button class="delete-photo" data-index="${i}" data-store="${index}">×</button>
-            </span>`).join('') : ''}
-        <button class="delete-btn" data-index="${index}" data-type="store">削除</button>
+        ${item.storeName} - ${item.itemName}
+        ${item.price ? '(' + item.price + '円)' : ''} 
+        ${item.memo ? ' - ' + item.memo : ''}
+        <button class="delete-btn" data-type="store" data-index="${index}">削除</button>
     `);
 }
 
-// ----------------- サムネイル生成 -----------------
-const MAX_THUMB_SIZE = 120;
-
-function createThumbnail(file) {
-    return new Promise(resolve => {
-        const img = new Image();
-        img.onload = () => {
-            const canvas = document.createElement('canvas');
-            let w = img.width;
-            let h = img.height;
-            const ratio = Math.min(MAX_THUMB_SIZE / w, MAX_THUMB_SIZE / h, 1);
-            w *= ratio;
-            h *= ratio;
-            canvas.width = w;
-            canvas.height = h;
-            canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-            canvas.toBlob(blob => resolve(URL.createObjectURL(blob)), 'image/jpeg', 0.7);
-        };
-        img.src = URL.createObjectURL(file);
-    });
-}
-
-storePhotoInput.addEventListener('change', async () => {
-    storePhotoPreview.innerHTML = '';
-    for (const file of storePhotoInput.files) {
-        const thumbURL = await createThumbnail(file);
-        const img = document.createElement('img');
-        img.src = thumbURL;
-        img.classList.add('thumb');
-        storePhotoPreview.appendChild(img);
-    }
-});
-
-// ----------------- イベント -----------------
-document.getElementById('addItemBtn').addEventListener('click', async () => {
-    const name = document.getElementById('itemName').value.trim();
-    const qty = document.getElementById('itemQty').value.trim();
-    const memo = document.getElementById('itemMemo').value.trim();
+/* ----------------- 追加処理 ----------------- */
+document.getElementById('addItemBtn').addEventListener('click', () => {
+    const name = itemName.value.trim();
     if (!validateInput(name)) return;
-    shoppingItems.push({ name, qty, memo });
-    await saveData();
+
+    shoppingItems.push({
+        name,
+        qty: itemQty.value.trim(),
+        memo: itemMemo.value.trim()
+    });
+
+    saveData();
     renderShoppingList();
-    document.getElementById('itemName').value = '';
-    document.getElementById('itemQty').value = '';
-    document.getElementById('itemMemo').value = '';
+
+    itemName.value = '';
+    itemQty.value = '';
+    itemMemo.value = '';
 });
 
-document.getElementById('addStockBtn').addEventListener('click', async () => {
-    const name = document.getElementById('stockName').value.trim();
-    const qty = document.getElementById('stockQty').value.trim();
-    const memo = document.getElementById('stockMemo').value.trim();
+document.getElementById('addStockBtn').addEventListener('click', () => {
+    const name = stockName.value.trim();
     if (!validateInput(name)) return;
-    stockItems.push({ name, qty, memo });
-    await saveData();
-    renderStockList();
-    document.getElementById('stockName').value = '';
-    document.getElementById('stockQty').value = '';
-    document.getElementById('stockMemo').value = '';
-});
 
-document.getElementById('addStoreBtn').addEventListener('click', async () => {
-    const storeName = document.getElementById('storeName').value.trim();
-    const itemName = document.getElementById('storeItem').value.trim();
-    const price = document.getElementById('storePrice').value.trim();
-    const memo = document.getElementById('storeMemo').value.trim();
-    if (!validateInput(storeName) || !validateInput(itemName)) return;
-
-    const formData = new FormData();
-    formData.append('storeName', storeName);
-    formData.append('itemName', itemName);
-    formData.append('price', price);
-    formData.append('memo', memo);
-
-    Array.from(storePhotoInput.files).forEach(file => formData.append('photos', file));
-
-    const res = await fetch('http://localhost:3000/api/store', {
-        method: 'POST',
-        body: formData
+    stockItems.push({
+        name,
+        qty: stockQty.value.trim(),
+        memo: stockMemo.value.trim()
     });
 
-    const result = await res.json();
-    storeItems.push(result);
+    saveData();
+    renderStockList();
+
+    stockName.value = '';
+    stockQty.value = '';
+    stockMemo.value = '';
+});
+
+document.getElementById('addStoreBtn').addEventListener('click', () => {
+    const storeNameVal = storeName.value.trim();
+    const itemNameVal = storeItem.value.trim();
+    if (!validateInput(storeNameVal) || !validateInput(itemNameVal)) return;
+
+    storeItems.push({
+        storeName: storeNameVal,
+        itemName: itemNameVal,
+        price: storePrice.value.trim(),
+        memo: storeMemo.value.trim()
+    });
+
+    saveData();
     renderStoreList();
 
-    // リセット
-    document.getElementById('storeName').value = '';
-    document.getElementById('storeItem').value = '';
-    document.getElementById('storePrice').value = '';
-    document.getElementById('storeMemo').value = '';
+    storeName.value = '';
+    storeItem.value = '';
+    storePrice.value = '';
+    storeMemo.value = '';
 });
 
-// ----------------- リスト操作（削除・移動・編集） -----------------
-document.addEventListener('click', async e => {
-    const index = e.target.dataset?.index;
-    const type = e.target.dataset?.type;
+/* ----------------- 操作（削除・移動・編集） ----------------- */
+document.addEventListener('click', e => {
+    const index = Number(e.target.dataset.index);
 
     if (e.target.classList.contains('delete-btn')) {
+        const type = e.target.dataset.type;
         if (type === 'shopping') shoppingItems.splice(index, 1);
         if (type === 'stock') stockItems.splice(index, 1);
         if (type === 'store') storeItems.splice(index, 1);
     }
 
-    if (e.target.classList.contains('move-btn') && type === 'shopping') {
+    if (e.target.classList.contains('move-btn')) {
         const item = shoppingItems.splice(index, 1)[0];
-        stockItems.push({ name: item.name, qty: item.qty, memo: item.memo });
+        stockItems.push(item);
     }
 
-    if (e.target.classList.contains('edit-btn') && type === 'stock') {
+    if (e.target.classList.contains('edit-btn')) {
         const item = stockItems[index];
-        const newName = prompt('新しい名前', item.name);
-        if (newName === null) return;
-        const newQty = prompt('数量', item.qty);
-        const newMemo = prompt('メモ', item.memo);
-        stockItems[index] = { name: newName.trim(), qty: newQty.trim(), memo: newMemo.trim() };
+        const name = prompt('名前', item.name);
+        if (name === null) return;
+        const qty = prompt('数量', item.qty);
+        const memo = prompt('メモ', item.memo);
+        stockItems[index] = { name, qty, memo };
     }
 
-    await saveData();
+    saveData();
     renderShoppingList();
     renderStockList();
     renderStoreList();
 });
 
-// ----------------- タブ切替 -----------------
-function showTab(id, button) {
-    document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+/* ----------------- タブ切替 ----------------- */
+function showTab(id, btn) {
+    document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
     document.getElementById(id).classList.add('active');
-    document.querySelectorAll('nav button').forEach(btn => btn.classList.remove('active'));
-    button.classList.add('active');
+    document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
 }
 
-// ----------------- 初期ロード -----------------
-(async () => {
-    await loadData();
-    renderShoppingList();
-    renderStockList();
-    renderStoreList();
-})();
+/* ----------------- 初期化 ----------------- */
+loadData();
+renderShoppingList();
+renderStockList();
+renderStoreList();

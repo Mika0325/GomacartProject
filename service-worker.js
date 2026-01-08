@@ -1,4 +1,5 @@
-const CACHE_NAME = 'gomacart-cache-v1';
+const CACHE_NAME = 'gomacart-cache-v2';
+
 const urlsToCache = [
     './Goma.html',
     './Cart.css',
