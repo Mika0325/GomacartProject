@@ -6,9 +6,6 @@ const shoppingList = document.getElementById('shoppingList');
 const stockList = document.getElementById('stockList');
 const storeList = document.getElementById('storeList');
 
-const storePhotoInput = document.getElementById('storePhoto');
-const storePhotoPreview = document.getElementById('storePhotoPreview');
-
 // ----------------- データロード/保存 -----------------
 async function loadData() {
     try {
@@ -178,8 +175,6 @@ document.getElementById('addStoreBtn').addEventListener('click', async () => {
     document.getElementById('storeItem').value = '';
     document.getElementById('storePrice').value = '';
     document.getElementById('storeMemo').value = '';
-    storePhotoInput.value = '';
-    storePhotoPreview.innerHTML = '';
 });
 
 // ----------------- リスト操作（削除・移動・編集） -----------------
@@ -205,14 +200,6 @@ document.addEventListener('click', async e => {
         const newQty = prompt('数量', item.qty);
         const newMemo = prompt('メモ', item.memo);
         stockItems[index] = { name: newName.trim(), qty: newQty.trim(), memo: newMemo.trim() };
-    }
-
-    if (e.target.classList.contains('delete-photo')) {
-        const storeIndex = e.target.dataset.store;
-        const photoIndex = e.target.dataset.index;
-        const photoName = storeItems[storeIndex].photos[photoIndex];
-        await fetch(`http://localhost:3000/api/store/photo/${photoName}`, { method: 'DELETE' });
-        storeItems[storeIndex].photos.splice(photoIndex, 1);
     }
 
     await saveData();
