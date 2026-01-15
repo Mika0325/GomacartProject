@@ -9,6 +9,7 @@ body {
     min-height: 100vh;
 }
 
+/* ===== ヘッダー ===== */
 header {
     background-color: #fef4f4;
     color: #333333;
@@ -19,12 +20,14 @@ header {
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
 }
 
+/* ===== メイン ===== */
 main {
     flex: 1;
     padding: 1rem;
     overflow-y: auto;
 }
 
+/* ===== タブ ===== */
 .tab-content {
     display: none;
 }
@@ -33,6 +36,7 @@ main {
     display: block;
 }
 
+/* ===== ナビ ===== */
 nav {
     display: flex;
     justify-content: space-around;
@@ -62,6 +66,7 @@ nav button.active {
     border-top: 3px solid #f09199;
 }
 
+/* ===== リスト ===== */
 .item-list {
     list-style: none;
     padding: 0;
@@ -80,6 +85,7 @@ nav button.active {
     flex-wrap: wrap;
 }
 
+/* ===== ボタン ===== */
 .item-list button {
     margin-left: 0.3rem;
     background-color: #fef4f4;
@@ -96,6 +102,7 @@ nav button.active {
     color: #ffffff;
 }
 
+/* ===== 入力 ===== */
 input,
 textarea {
     width: 100%;
@@ -118,8 +125,11 @@ button.add-btn {
     font-size: 1rem;
 }
 
-/* スマホ対応 */
+/* ============
+   スマホ対応
+============== */
 @media (max-width: 600px) {
+
     header {
         font-size: 1.2rem;
         padding: 0.8rem;
@@ -139,14 +149,27 @@ button.add-btn {
         padding: 0.8rem;
     }
 
+    /* カードを縦並びに */
     .item-list li {
         font-size: 0.9rem;
+        display: flex;
         flex-direction: column;
-        align-items: flex-start;
+        align-items: stretch;
     }
 
+    /* ボタン共通 */
     .item-list button {
-        margin-top: 0.3rem;
+        margin-top: 0.6rem;
+    }
+
+    /* 左下（在庫へ・編集） */
+    .item-list button:not(.delete-btn) {
+        align-self: flex-start;
+    }
+
+    /* 右下（削除） */
+    .item-list button.delete-btn {
+        align-self: flex-end;
     }
 
     body {
